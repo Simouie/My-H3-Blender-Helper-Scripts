@@ -54,11 +54,11 @@ class deboner(bpy.types.Operator):
             for arm in bpy.data.objects:
                 #if arm.type == 'ARMATURE':
                 bpy.ops.object.mode_set(mode='POSE')
-                arm.select = True
+                arm.select_set(True)
                 bpy.ops.pose.select_all(action='DESELECT')
                 for pb in arm.pose.bones:
                     if pb.name in badbones:
-                        arm.data.bones[pb.name].select = True
+                        arm.data.bones[pb.name].select_set(True)
                         print(pb.name)
                         bpy.ops.anim.keyframe_clear_v3d()
         except:
