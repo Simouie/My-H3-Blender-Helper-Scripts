@@ -37,20 +37,11 @@ from bpy.props import (
         )
 
 class ReachDebonerProperties(bpy.types.PropertyGroup):
-    some_integer_prop = bpy.props.IntProperty()
-    reach_identifier: bpy.props.StringProperty(
-        name='Working Directory',
-        description='The directory of your animation files')
 
-class ReachFileSelector(bpy.types.Operator, ExportHelper):
-    bl_idname = "reachdeboner.identifier_selector"
-    bl_label = "Working Directory"
-    bl_description = 'Set the working directory of your animation files'
-    filename_ext = ""
-    def execute(self, context):
-        fdir = self.properties.filepath
-        context.scene.reachdeboner_addon.reach_identifier = fdir
-        return{'FINISHED'}
+    working_directory: bpy.props.StringProperty(
+        subtype="DIR_PATH", name="Working Directory",
+        description="Path to directory for your animation files",
+    )
 
 class deboner(bpy.types.Operator):
     bl_idname = "reachdeboner.deboner"
@@ -98,7 +89,7 @@ class importboner(bpy.types.Operator):
     def execute(self, context):
 
         # path_of_the_directory = r'F:\SteamLibrary\steamapps\common\H3EK\data\animations'
-        path_of_the_directory = context.scene.reachdeboner_addon.reach_identifier
+        path_of_the_directory = context.scene.reachdeboner_addon.working_directory
         jma_type = (".JMA", ".JMM", ".JMO", ".JMR", ".JMT", ".JMW", ".JMZ")
 
         for files in os.listdir(path_of_the_directory):
@@ -169,25 +160,24 @@ class ReachDebonerPanel(bpy.types.Panel):
         scn = context.scene
         col = layout.column_flow(columns=1, align=True)
         row = col.row(align=True)
-        col.prop(scn.reachdeboner_addon, 'reach_identifier', text="Folder")
-        col.operator("reachdeboner.identifier_selector", icon="FILE_FOLDER", text="Set Working Directory")
+        col.prop(scn.reachdeboner_addon, 'working_directory', text="Folder")
         col.operator("reachdeboner.deboner", icon="GROUP_BONE", text="Remove Reach Bones")
         col.operator(file_jma.ImportJMA.bl_idname, icon="BONE_DATA", text="Import an Animation")
         col.operator("reachdeboner.importboner", icon="EXPORT", text="Batch Debone/Export")
+
 def register():
     from io_scene_halo.file_jma import import_jma
     bpy.utils.register_class(ReachDebonerPanel)
     bpy.utils.register_class(ReachDebonerProperties)
-    bpy.types.Scene.reachdeboner_addon = bpy.props.PointerProperty(type=ReachDebonerProperties)
-    bpy.utils.register_class(ReachFileSelector)
     bpy.utils.register_class(deboner)
     bpy.utils.register_class(importboner)
+    bpy.types.Scene.reachdeboner_addon = bpy.props.PointerProperty(type=ReachDebonerProperties)
+
 def unregister():
     from io_scene_halo.file_jma import import_jma
     bpy.utils.unregister_class(ReachDebonerPanel)
     bpy.utils.unregister_class(ReachDebonerProperties)
-    bpy.utils.unregister_class(ReachFileSelector)
     bpy.utils.unregister_class(deboner)
     bpy.utils.unregister_class(importboner)
-if __name__ == "__main__" :
-    register()
+
+if __name__ == "__main__": register()
