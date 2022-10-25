@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Halo Reach Deboner",
     "author": "MercyMoon",
-    "version": (0, 1),
+    "version": (0, 1, 1),
     "blender": (3, 0, 0),
     "category": "3D View"
 }
@@ -89,17 +89,15 @@ class deboner(bpy.types.Operator):
         return {'FINISHED'}
 
 class importboner(bpy.types.Operator):
+
     bl_idname = "reachdeboner.importboner"
     bl_label = "Reach Batch Importer"
     bl_description = 'Reach Batch Importer'
-    scn = bpy.context.scene
+
     def execute(self, context):
-        from io_scene_halo.file_jma import import_jma
-        from io_scene_halo.file_jma import export_jma
-        from io_scene_halo.global_functions import global_functions
-        #path_of_the_directory = r'F:\SteamLibrary\steamapps\common\H3EK\data\animations'
-        scn = bpy.context.scene
-        path_of_the_directory = scn.reachdeboner_addon.reach_identifier
+        # path_of_the_directory = r'F:\SteamLibrary\steamapps\common\H3EK\data\animations'
+        scene = context.scene
+        path_of_the_directory = scene.reachdeboner_addon.reach_identifier
         ext = ('.JMM','.JMO')
         for files in os.listdir(path_of_the_directory):
             if files.endswith(ext):
@@ -156,6 +154,7 @@ class importboner(bpy.types.Operator):
             else:
                 continue
         return {'FINISHED'}
+        
 class ReachDebonerPanel(bpy.types.Panel):
     from io_scene_halo import file_jma
     bl_idname = "WMFILEPANEL_PT_hello"
