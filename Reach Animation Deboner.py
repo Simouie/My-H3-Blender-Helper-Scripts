@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Halo Reach Deboner",
     "author": "MercyMoon",
-    "version": (0, 1, 4),
+    "version": (0, 2, 0),
     "blender": (3, 0, 0),
     "category": "3D View"
 }
@@ -19,149 +19,169 @@ from io_scene_halo import file_jma
 
 class ReachDebonerProperties(PropertyGroup):
 
-    working_directory: StringProperty(
-        subtype="DIR_PATH", name="Working Directory",
+    input_directory: StringProperty(
+        subtype="DIR_PATH", name="Input Directory",
+        description="Path to directory for your animation files",
+    )
+
+    output_directory: StringProperty(
+        subtype="DIR_PATH", name="Output Directory",
         description="Path to directory for your animation files",
     )
 
 class ReachDebonerPanel(Panel):
 
-    bl_idname = "WMFILEPANEL_PT_hello"
-    bl_label = "Halo Reach Deboner"
+    bl_idname = "DEBONER_PT_Panel"
+    
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+
     bl_category = "Halo Reach Deboner"
+    bl_label = "Halo Reach Deboner"
 
     def draw(self, context):
-        layout = self.layout
-        scn = context.scene
-        col = layout.column_flow(columns=1, align=True)
-        row = col.row(align=True)
-        col.prop(scn.reachdeboner_addon, "working_directory", text="Folder")
+
+        col = self.layout.column_flow(columns=1, align=True)
+        properties = context.scene.reachdeboner_addon
+
+        col.prop(properties, "input_directory", text="Input")
+        col.prop(properties, "output_directory", text="Output")
+        col.operator("reachdeboner.importboner", icon="EXPORT", text="Batch Debone / Export")
+
+        col.separator(factor=1.0)
+
+        col.operator(file_jma.ImportJMA.bl_idname, icon="BONE_DATA", text="Import Animation")
         col.operator("reachdeboner.deboner", icon="GROUP_BONE", text="Remove Reach Bones")
-        col.operator(file_jma.ImportJMA.bl_idname, icon="BONE_DATA", text="Import an Animation")
-        col.operator("reachdeboner.importboner", icon="EXPORT", text="Batch Debone/Export")
+
 
 class deboner(Operator):
 
     bl_idname = "reachdeboner.deboner"
+
     bl_label = "Remove Reach Bones"
     bl_description = "Remove Reach Bones"
 
     def execute(self, context):
 
-        badbones = [
+        objects = context.view_layer.objects
+
+        bad_bones = [
             "pedestal", "aim_pitch", "aim_yaw", 
             "l_humerus", "l_radius", "l_handguard", 
             "r_humerus", "r_radius", "r_handguard"
         ]
 
-        try:
-            print("removing keyframes of bones")
-            for arm in bpy.data.objects:
-                #if arm.type == "ARMATURE":
+        for obj in bpy.data.objects:
+
+            if not obj.type == "ARMATURE": continue
+
+            bpy.ops.object.select_all(action="DESELECT")
+            objects.active = None
+
+            obj.select_set(True)
+            objects.active = obj
+
+            print("Removing keyframes")
+
+            try:
+
                 bpy.ops.object.mode_set(mode="POSE")
-                arm.select_set(True)
-                bpy.ops.pose.select_all(action="DESELECT")
-                for pb in arm.pose.bones:
-                    if pb.name in badbones:
-                        arm.data.bones[pb.name].select_set(True)
-                        print(pb.name)
-                        bpy.ops.anim.keyframe_clear_v3d()
-        except:
-            print("removing keyframes failed")
-            pass
+                
+                for bone in obj.pose.bones:
+                    if bone.name in bad_bones:
+                        obj.data.bones[bone.name].select = True
+                        print(bone.name)
+                        
+                bpy.ops.anim.keyframe_clear_v3d()
 
-        try:
-            print("removing bones")
-            for obj in bpy.data.objects:
-                if obj.type == "ARMATURE":
-                    bpy.ops.object.mode_set(mode="EDIT")
-                    armature = obj.data
-                    for bone in armature.edit_bones:
-                        if bone.name in badbones: 
-                            print(bone.name)
-                            armature.edit_bones.remove(bone)
-        except:
-            print("removing bones failed")
-            pass
+            except:
+                print("Removing keyframes failed")
+                pass
 
+            print("Removing bones")
+
+            try: 
+
+                bpy.ops.object.mode_set(mode="EDIT")
+                
+                armature = obj.data
+                for bone in armature.edit_bones:
+                    if bone.name in bad_bones: 
+                        armature.edit_bones.remove(bone)
+                        print(bone.name)
+                
+            except:
+                print("Removing bones failed")
+                pass
+
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        bpy.ops.object.select_all(action="DESELECT")
+        objects.active = None
+                    
         return {"FINISHED"}
 
 class importboner(Operator):
 
     bl_idname = "reachdeboner.importboner"
+
     bl_label = "Reach Batch Importer"
     bl_description = "Reach Batch Importer"
 
     def execute(self, context):
 
-        path_of_the_directory = context.scene.reachdeboner_addon.working_directory
+        input_path = context.scene.reachdeboner_addon.input_directory
+        output_path = context.scene.reachdeboner_addon.output_directory
+
         jma_type = (".JMA", ".JMM", ".JMO", ".JMR", ".JMT", ".JMW", ".JMZ")
 
-        for files in os.listdir(path_of_the_directory):
-            if files.endswith(jma_type):
-                f = os.path.join(path_of_the_directory,files)
-                if os.path.isfile(f):
-                    print(f)
+        for file_name in os.listdir(input_path):
 
-                    try:
-                        importboner.filepath = f
-                        importboner.fix_parents = True
-                        importboner.game_version = "halo3mcc"
-                        importboner.jms_path_a = ""
-                        importboner.jms_path_b = ""
-                        importboner.fix_rotations = False
-                        file_extension = pathlib.Path(f).suffix
-                        importboner.extension = file_extension
-                        importboner.extension_ce = file_extension
-                        importboner.extension_h2 = file_extension
-                        importboner.extension_h3 = file_extension
-                        importboner.jma_version = "16392"
-                        importboner.jma_version_ce = "16392"
-                        importboner.jma_version_h2 = "16395"
-                        importboner.jma_version_h3 = "16395"
-                        importboner.generate_checksum = True
-                        importboner.frame_rate_float= False
-                        importboner.biped_controller= False
-                        importboner.folder_structure= False
-                        importboner.scale_enum= False
-                        importboner.scale_float= False
-                        importboner.console= False
-                        importboner.custom_frame_rate= "30"
+            if not file_name.endswith(jma_type): continue
 
-                        print("Importing")
+            import_path = os.path.join(input_path, file_name)
+            print(import_path)
 
-                        try:
-                            file_jma.ImportJMA.execute(self, context)
-                        except:
-                            print("Importing failed")
-                            pass
+            if not os.path.isfile(import_path): continue
 
-                        print("Deboning")
+            print("Importing")
 
-                        try:
-                            deboner.execute(self, context)
-                        except:
-                            print("deboning failed")
-                            pass
+            try:
+                bpy.ops.import_scene.jma(filepath=import_path)
+            except:
+                print("Importing failed")
+                pass
 
-                        bpy.ops.object.mode_set(mode="OBJECT")
-                        bpy.ops.object.select_all(action="DESELECT")
-                        bpy.ops.object.delete()
+            print("Deboning")
 
-                        print("Exporting")
+            try:
+                deboner.execute(self, context)
+            except:
+                print("Deboning failed")
+                pass
 
-                        try:
-                            file_jma.ExportJMA.execute(self, context)
-                        except:
-                            print("exporting failed")
-                            pass
-                    except:
-                        pass
-            else:
-                continue
+            print("Exporting")
 
+            export_path = os.path.join(output_path, file_name)
+            extension = pathlib.Path(import_path).suffix
+            game_version = "halo3mcc"
+            
+            try:
+                bpy.ops.export_jma.export(
+                    filepath=export_path,
+                    extension_ce=extension, 
+                    extension_h2=extension,
+                    extension_h3=extension,
+                    game_version=game_version
+                )
+            except:
+                print("Exporting failed")
+                pass
+
+            for obj in bpy.data.objects:
+                if obj.type == "ARMATURE":
+                    bpy.data.objects.remove(obj)
+            
         return {"FINISHED"}
 
 
