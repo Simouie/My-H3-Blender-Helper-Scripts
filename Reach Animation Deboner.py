@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Halo Reach Deboner",
     "author": "MercyMoon",
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "blender": (3, 0, 0),
     "category": "3D View"
 }
@@ -89,8 +89,8 @@ class deboner(Operator):
                 
                 for bone in obj.pose.bones:
                     if bone.name in bad_bones:
+                        print(f"{obj.name} : {bone.name}")
                         obj.data.bones[bone.name].select = True
-                        print(bone.name)
                         
                 bpy.ops.anim.keyframe_clear_v3d()
 
@@ -107,8 +107,8 @@ class deboner(Operator):
                 armature = obj.data
                 for bone in armature.edit_bones:
                     if bone.name in bad_bones: 
+                        print(f"{obj.name} : {bone.name}")
                         armature.edit_bones.remove(bone)
-                        print(bone.name)
                 
             except:
                 print("Removing bones failed")
